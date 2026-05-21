@@ -43,7 +43,7 @@ def image_to_ascii(
             pixel = grayscale.getpixel((x, y))
             ramp_index = int(pixel / 255 * ramp_last_index)
             row_chars.append(ramp[ramp_index])
-        lines.append("".join(row_chars).rstrip())
+        lines.append("".join(row_chars).ljust(width))
 
     return "\n".join(lines)
 

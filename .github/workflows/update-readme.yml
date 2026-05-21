@@ -5,13 +5,18 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main]
     paths:
-      - update_readme.py
+      - build_readme.py
+      - anya.txt
       - .github/workflows/update-readme.yml
 
 permissions:
   contents: write
+
+concurrency:
+  group: update-readme
+  cancel-in-progress: true
 
 jobs:
   refresh:
@@ -25,10 +30,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Refresh README
+      - name: Render README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python update_readme.py "${{ github.repository_owner }}"
+        run: python build_readme.py "${{ github.repository_owner }}"
 
       - name: Commit and push if changed
         run: |
@@ -37,7 +42,15 @@ jobs:
           git add README.md
           if git diff --staged --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "chore: refresh profile stats"
-            git push
+            exit 0
           fi
+          git commit -m "chore: refresh profile stats"
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push failed (attempt $attempt), rebasing on remote and retrying..."
+            git pull --rebase origin main
+          done
+          echo "Push failed after 3 attempts."
+          exit 1
