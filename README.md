@@ -1,43 +1,5 @@
-```apache
-                                                 khlif-and@dev ──────────────────────────────────────
-              +**             +
-               +*#+ ++        *##+#*+++          . Name: .............. Khalif Siregar
-             +***######**+:    =%%##%#**=        . Age: ............... 23 years, 1 month, 20 days
-           *##############*=:...#%#%%#**+        . OS: ................ Windows 11
-      ...-=%###*##########%#+-.-*%%*+            . IDE: ............... VSCode, Neovim
-      ..--####**#####**###*##+-***#=-:
-       .:+#*#****####*******##+*****+=-          . Languages.Programming ─────────────────────────
-       -=##****#***##**+++++#+.=*******=         .   Kotlin, Dart, Python, Java, Go
-       +###*++++-*%#%%*-:-*=*:..:-+***=          . Languages.Real ────────────────────────────────
-      -**##*==*-:+%%%%%*=+##+......:-=           .   Indonesian, English, German, Dutch
-      ***##**##**#####**####:.......=**
-    +**++*##**###%==+++=%%#=.......=**+*         . Hobby ─────────────────────────────────────────
-    =+++=**##*+*#%##***#*+-......:===* =         .   Anime, Coding, Gaming
-    =#=+=+*####+=+++*++*+:.. ...:=+-==
-     *==-==+**#*--+*-+%#+... ...-:-              . Contact ───────────────────────────────────────
-      =  ---=--+.+#+-+**-....                    . Email: ............. khalifsiregar123@gmail.com
-             ...-*-::::-:....                    . GitHub: ............ @khlif-and
-           .....::...........
-        =....................                    . GitHub Stats ──────────────────────────────────
-   +**+*=....................                    . Followers: ......... 2
-   +#%**+.... ..................                 . Following: ......... 0
-    **+++=:.  ....................               . Public Repos: ...... 29
-       --=-  .....................::-            . Public Gists: ...... 0
-             .................:-=+*****+
-             ..............-==*#**#**=-==        . Last refreshed: 2026-05-21 15:10 UTC
-            ..........::-=+*****#*=: .-=:
-           -====-===++***#***#**: .:-=-
-          -=*****#*****###******-----
-          -=***********++==+###%#-
-              -*****-       #%%%%#*
-              =%%##*         +#%%%%*
-              +%%%%+          +%%%%%+
-```
-
 <div align="center">
 
-![Stats](https://github-readme-stats.vercel.app/api?username=khlif-and&show_icons=true&theme=tokyonight&hide_border=true&count_private=true)
-![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=khlif-and&layout=compact&theme=tokyonight&hide_border=true&langs_count=8)
-![Streak](https://streak-stats.demolab.com?user=khlif-and&theme=tokyonight&hide_border=true)
+<img src="neofetch.svg" alt="khlif-and neofetch" />
 
 </div>

@@ -8,7 +8,7 @@ on:
     branches: [main]
     paths:
       - build_readme.py
-      - anya.txt
+      - anya.png
       - .github/workflows/update-readme.yml
 
 permissions:
@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install dependencies
+        run: pip install Pillow
+
       - name: Render README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md
+          git add README.md neofetch.svg
           if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0
