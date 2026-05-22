@@ -2,13 +2,16 @@ name: Update profile README
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - build_readme.py
+      - stats.py
+      - render.py
       - anya.png
+      - mascots.png
       - .github/workflows/update-readme.yml
 
 permissions:
@@ -35,6 +38,7 @@ jobs:
 
       - name: Render README
         env:
+          GH_PAT: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python build_readme.py "${{ github.repository_owner }}"
 
@@ -42,7 +46,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md neofetch.svg
+          for f in README.md neofetch.svg stats.svg; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0
