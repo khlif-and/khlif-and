@@ -12,14 +12,13 @@ from urllib.request import Request, urlopen
 from PIL import Image, ImageDraw
 
 from render import (
+    ALPHA_THRESHOLD,
     CHAR_WIDTH,
     INFO_GAP,
     LINE_HEIGHT,
     PADDING,
     PALETTE,
-    group_runs,
     render_text,
-    sample_colored_ascii,
     svg_close,
     svg_open,
 )
@@ -27,8 +26,11 @@ from render import (
 GITHUB_GRAPHQL = "https://api.github.com/graphql"
 STREAK_START = date(2025, 1, 1)
 
-MASCOT_WIDTH_CHARS = 20
+MASCOT_BLOCK_CHARS = 20
+MASCOT_BLOCK_LINES = 10
+MASCOT_PIXEL_RES = 40
 MASCOT_FLOODFILL_TOLERANCE = 18
+MASCOT_QUANTIZE_COLORS = 48
 LANGUAGE_DEFAULT_COLOR = "#9aa5ce"
 LANGUAGES_TOP_N = 5
 REPOS_TOP_N = 5
@@ -320,6 +322,76 @@ def remove_background(image: Image.Image, tolerance: int = MASCOT_FLOODFILL_TOLE
     return image
 
 
+def autocrop_alpha(image: Image.Image) -> Image.Image:
+    rgba = image.convert("RGBA")
+    bbox = rgba.getchannel("A").getbbox()
+    return rgba.crop(bbox) if bbox else rgba
+
+
+def _flush_run(
+    rects: list[str],
+    color: str | None,
+    start: int | None,
+    end: int,
+    row_y: float,
+    base_x: float,
+    pixel_w: float,
+    pixel_h: float,
+) -> None:
+    if color is None or start is None:
+        return
+    rx = base_x + start * pixel_w
+    rw = (end - start) * pixel_w + 0.6
+    rh = pixel_h + 0.6
+    rects.append(
+        f'<rect x="{rx:.2f}" y="{row_y:.2f}" width="{rw:.2f}" height="{rh:.2f}" fill="{color}"/>'
+    )
+
+
+def render_mascot_rects(
+    image: Image.Image,
+    x_origin: float,
+    y_origin: float,
+    block_w: float,
+    block_h: float,
+    target_pixels: int = MASCOT_PIXEL_RES,
+    quantize_colors: int = MASCOT_QUANTIZE_COLORS,
+) -> list[str]:
+    image = autocrop_alpha(image)
+    iw, ih = image.size
+    if iw == 0 or ih == 0:
+        return []
+    scale = min(target_pixels / iw, target_pixels / ih)
+    new_w = max(1, int(round(iw * scale)))
+    new_h = max(1, int(round(ih * scale)))
+    image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    alpha = image.getchannel("A")
+    quantized = image.convert("RGB").quantize(colors=quantize_colors).convert("RGB")
+
+    pixel_w = block_w / target_pixels
+    pixel_h = block_h / target_pixels
+    base_x = x_origin + (block_w - new_w * pixel_w) / 2
+    base_y = y_origin + (block_h - new_h * pixel_h) / 2
+
+    rects: list[str] = []
+    for y in range(new_h):
+        row_y = base_y + y * pixel_h
+        run_start: int | None = None
+        run_color: str | None = None
+        for x in range(new_w):
+            if alpha.getpixel((x, y)) < ALPHA_THRESHOLD:
+                color = None
+            else:
+                r, g, b = quantized.getpixel((x, y))
+                color = f"#{r:02x}{g:02x}{b:02x}"
+            if color != run_color:
+                _flush_run(rects, run_color, run_start, x, row_y, base_x, pixel_w, pixel_h)
+                run_start = x if color is not None else None
+                run_color = color
+        _flush_run(rects, run_color, run_start, new_w, row_y, base_x, pixel_w, pixel_h)
+    return rects
+
+
 def progress_bar(ratio: float, width: int = BAR_WIDTH) -> tuple[str, str]:
     filled = max(0, min(width, round(ratio * width)))
     return "█" * filled, "░" * (width - filled)
@@ -421,14 +493,11 @@ def render_section_title(title: str, total_width_chars: int) -> list[tuple[str, 
 
 def render_stats_svg(stats: StatsData, mascots_image: Path, updated: str) -> str:
     mascots = crop_mascots(mascots_image)
-    mascot_rows_by_key = {
-        key: sample_colored_ascii(img, MASCOT_WIDTH_CHARS, drop_dark_bg=False, solid=True)
-        for key, img in mascots.items()
-    }
-    mascot_height = max(len(rows) for rows in mascot_rows_by_key.values())
-
     sections = build_section_lines(stats)
-    info_x = PADDING + MASCOT_WIDTH_CHARS * CHAR_WIDTH + INFO_GAP
+
+    mascot_block_w = MASCOT_BLOCK_CHARS * CHAR_WIDTH
+    mascot_block_h = MASCOT_BLOCK_LINES * LINE_HEIGHT
+    info_x = PADDING + mascot_block_w + INFO_GAP
     info_chars_width = 75
 
     body: list[str] = []
@@ -445,10 +514,16 @@ def render_stats_svg(stats: StatsData, mascots_image: Path, updated: str) -> str
 
     for section_idx, section in enumerate(sections):
         section_top_line = line_index
-        mascot_rows = mascot_rows_by_key[section.mascot_key]
-        for row_idx, row in enumerate(mascot_rows):
-            y = PADDING + (section_top_line + row_idx + 1) * LINE_HEIGHT - 4
-            body.append(render_text(PADDING, y, group_runs(row)))
+        section_y_top = PADDING + section_top_line * LINE_HEIGHT
+        body.extend(
+            render_mascot_rects(
+                mascots[section.mascot_key],
+                x_origin=PADDING,
+                y_origin=section_y_top,
+                block_w=mascot_block_w,
+                block_h=mascot_block_h,
+            )
+        )
 
         title_runs = render_section_title(section.title, info_chars_width)
         body.append(
@@ -458,7 +533,7 @@ def render_stats_svg(stats: StatsData, mascots_image: Path, updated: str) -> str
             y = PADDING + (section_top_line + line_offset + 1) * LINE_HEIGHT - 4
             body.append(render_text(info_x, y, [(c, t) for c, t in runs]))
 
-        section_height = max(mascot_height, len(section.lines) + 1)
+        section_height = max(MASCOT_BLOCK_LINES, len(section.lines) + 1)
         line_index += section_height
         if section_idx < len(sections) - 1:
             line_index += 1  # blank between sections
